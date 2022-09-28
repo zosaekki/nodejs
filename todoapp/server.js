@@ -19,10 +19,6 @@ MongoClient.connect(
         });
     })
 
-app.get('/pet', function (req, res) {
-    res.send('펫 용품 쇼핑 페이지');
-})
-
 app.get('/', function (req, res) {
     res.sendFile(__dirname + '/index.html');
     // sendFile() 파일 전송, __dirname 
@@ -51,7 +47,22 @@ app.post('/newpost', (req, res) => {
 app.get('/list', (req, res) => {
     // 모든 데이터 찾기
     db.collection('post').find().toArray((err, result) => {
-        console.log(result);
         res.render('list.ejs', { posts : result});
     });
+})
+
+app.delete('/delete', (req, res) => {
+    console.log(req.body);
+    req.body._id = parseInt(req.body._id);
+    db.collection('post').deleteOne({ _id: req.body._id }, (err, result) => {
+        console.log('삭제완료!');
+        res.status(200).send({ message : '성공했습니다' });
+    });
+})
+
+app.get('/detail/:id', (req, res) => {
+    db.collection('post').findOne({ _id: parseInt(req.params.id) }, (err, result) => {
+        console.log(result);
+        res.render('detail.ejs', { data : result }) // ejs 파일로 데이터 보내는 법, { 이름 : 데이터 }
+    })
 })
