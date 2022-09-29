@@ -10,42 +10,24 @@
 </head>
 
 <body>
-    <nav class="navbar navbar-expand-lg bg-light">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="#">Todo App</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="/">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/write">Write</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/list">List</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+    <%- include('nav.html') %>
 
 
-    <h4 class="ms-3 my-3">서버에서 가져온 Todo List</h4>
+    <h4 class="ms-3 my-3 text-center">서버에서 가져온 Todo List</h4>
     <!-- EJS 문법 -->
+    <div class="container">
     <ul class="list-group">
         <% for (let i=0; i < posts.length; i++) { %>
             <li class="list-group-item">
                 <p>글번호 : <%= posts[i]._id %></p>
-                <a href="/detail/<%= posts[i]._id %>"><h4>Todo title : <%= posts[i].title %></h4></a>
-                <p>Todo date : <%= posts[i].date %></p>
-                <button class="del" data-id="<%= posts[i]._id %>">삭제</button>
+                <a href="/detail/<%= posts[i]._id %>"><h4><%= posts[i].title %></h4></a>
+                <p><%= posts[i].date %></p>
+                <a href="/edit/<%= posts[i]._id %>"><button class="btn btn-primary" data-id="<%= posts[i]._id %>">수정</button></a>
+                <button class="del btn btn-danger" data-id="<%= posts[i]._id %>">삭제</button>
             </li>
         <% } %>
     </ul>
+</div>
 
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
 

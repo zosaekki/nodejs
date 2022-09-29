@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/css/bootstrap.min.css">
+    <title>Document</title>
+</head>
+
+<body>
+    <%- include('nav.html') %>
+
+    <h4 class="container mt-4"><strong>로그인 페이지</strong></h4>
+    <div class="container mt-3">
+        <form action="/login" method="POST">
+            <div class="form-group">
+                <label>ID</label>
+                <input type="text" class="form-control" name="id">
+            </div>
+            <div class="form-group">
+                <label>PW</label>
+                <input type="password" class="form-control" name="pw">
+            </div>
+            <button type="submit" class="btn btn-success">Submit</button>
+        </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
