@@ -13,7 +13,7 @@
     <%- include('nav.html') %>
 
 
-    <h4 class="ms-3 my-3 text-center">서버에서 가져온 Todo List</h4>
+    <h4 class="ms-3 my-3 text-center">서버에서 가져온 Search List</h4>
 
 
     <div class="container input-group mb-2">
@@ -25,13 +25,13 @@
     <!-- EJS 문법 -->
     <div class="container">
     <ul class="list-group">
-        <% for (let i=0; i < posts.length; i++) { %>
+        <% for (let i=0; i < search.length; i++) { %>
             <li class="list-group-item">
-                <p>글번호 : <%= posts[i]._id %></p>
-                <a href="/detail/<%= posts[i]._id %>"><h4><%= posts[i].title %></h4></a>
-                <p><%= posts[i].date %></p>
-                <a href="/edit/<%= posts[i]._id %>"><button class="btn btn-primary" data-id="<%= posts[i]._id %>">수정</button></a>
-                <button class="del btn btn-danger" data-id="<%= posts[i]._id %>">삭제</button>
+                <p>글번호 : <%= search[i]._id %></p>
+                <a href="/detail/<%= search[i]._id %>"><h4><%= search[i].title %></h4></a>
+                <p><%= search[i].date %></p>
+                <a href="/edit/<%= search[i]._id %>"><button class="btn btn-primary" data-id="<%= search[i]._id %>">수정</button></a>
+                <button class="del btn btn-danger" data-id="<%= search[i]._id %>">삭제</button>
             </li>
         <% } %>
     </ul>
@@ -52,15 +52,20 @@
                 window.location.reload();
                 // click.parent('li').fadeOut(); 이거 왜 안되노 ㅠㅠ
             }).fail((xhr, textStatus, errorThrown) => {
-                alert('니 글 아니잖아');
                 console.log(xhr, textStatus, errorThrown);
             })
         })
 
         $('#search').click(() => {
-            var searchInput = $('#search-input').val();
-            window.location.replace('/search?value=' + searchInput);
+            var searchVal = $('#search-input').val();
+            window.location.replace('/search?value=' + searchVal);
         })
+
+        // 쿼리스트링 쉽게 만드는 방법
+        var material = { name: 'value', name2: 'value2' };
+        $.param(material);
+
+        $(formTag).serialize();
     </script>
 
 
