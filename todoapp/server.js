@@ -9,6 +9,9 @@ app.use(methodOverride('_method'));
 app.set('view engine', 'ejs');
 require('dotenv').config(); // 환경변수 관리 라이브러리
 const { ObjectId } = require('mongodb');
+const http = require('http').createServer(app);
+const { Server } = require('socket.io');
+const io = new Server(http);
 
 app.use('/public', express.static('public')); // 미들웨어 (요청과 응답사이에 동작하는), static 파일을 보관하기 위해 public 폴더를 쓸거다.
 
@@ -20,11 +23,35 @@ MongoClient.connect(
         if (err) { return console.log(err) };
         db = client.db('todoapp');
 
-        app.listen(process.env.PORT, function () {
+        http.listen(process.env.PORT, function () {
             console.log('listening on 8080');
         });
     })
 
+app.get('/socket', (req, res) => {
+    res.render('socket.ejs');
+})
+
+io.on('connection', function(socket) { // 누가 웹소켓에 접속하면 함수 실행
+    console.log(socket.id);
+    console.log('웹소켓 접속');
+
+    // socket.join('room1'); // 채팅방 생성
+
+    socket.on('joinroom', function(data) {
+        socket.join('room1');
+        console.log('room1 join');
+    })
+
+    socket.on('room1-send', function(data) {
+        io.to('room1').emit('broadcast', data) // room1에 접속한 사람들에게만 전송
+    })
+
+    socket.on('user-send', function(data) { // 'user-send' 이름으로 메세지 보내면 내부 코드 실행, socket.on(작명, 콜백함수) -> 서버 수신, data -> 유저가 보낸 메세지
+        io.emit('broadcast', data) // 서버 -> 유저 메세지 전송, 모든 유저에게 메세지 보내줌
+        // to(socket.id) 목적지를 정함, 유저 구분, 특정 유저에게만 메세지 가능
+    })
+})
 
 // 로그인 관련 라이브러리 선언
 const passport = require('passport'); // node.js 환경에서 로그인 기능 쉽게 구현 도와줌
@@ -65,7 +92,7 @@ passport.serializeUser((user, done) => {
 // 이 세션 데이터를 가진 사람을 DB에서 찾음(마이페이지 접속시 발동)
 // 위에 있는 user.id랑 밑에 있는 id랑 동일
 passport.deserializeUser((id, done) => {
-    db.collection('login').findOne({ id : id}, (err, result) => {
+    db.collection('login').findOne({ id: id }, (err, result) => {
         done(null, result);
     })
 })
@@ -109,24 +136,24 @@ app.get('/fail', (req, res) => {
 })
 
 app.get('/mypage', islogin, (req, res) => {
-    res.render('mypage.ejs', { user: req.user});
+    res.render('mypage.ejs', { user: req.user });
 })
 
 app.get('/search', (req, res) => {
     let searchCondition = [
         {
-        $search: {
-            index: 'titleSearch',
-            text: {
-                query: req.query.value,
-                path: "title" // 제목, 날짜 찾고 싶으면 ['제목', '날짜']
+            $search: {
+                index: 'titleSearch',
+                text: {
+                    query: req.query.value,
+                    path: "title" // 제목, 날짜 찾고 싶으면 ['제목', '날짜']
+                }
             }
-        }
-    },
-    // { $sort: { _id: 1 }}, // 어떤 순서로 정렬할지
-    // { $limit: 10 },
-    // { $project: { title: 1, _id: 0, score: { $meta: "searchScore" }}} 검색결과를 뭘 보여줄지, 필터
-]
+        },
+        // { $sort: { _id: 1 }}, // 어떤 순서로 정렬할지
+        // { $limit: 10 },
+        // { $project: { title: 1, _id: 0, score: { $meta: "searchScore" }}} 검색결과를 뭘 보여줄지, 필터
+    ]
     db.collection('post').aggregate(searchCondition).toArray((err, result) => { // aggregate = 검색 조건 여러개 가능, 데이터 꺼내는 pipeline 가능
         res.render('search.ejs', { search: result });
         console.log(result);
@@ -135,7 +162,7 @@ app.get('/search', (req, res) => {
 
 // 미들웨어 제작
 function islogin(req, res, next) {
-    if(req.user) { // req.user = 로그인 후 세션이 있으면 존재함
+    if (req.user) { // req.user = 로그인 후 세션이 있으면 존재함
         next(); // next() = 통과
     } else {
         res.send('로그인 하셔야죠?');
@@ -145,15 +172,15 @@ function islogin(req, res, next) {
 
 
 app.post('/register', (req, res) => {
-        db.collection('login').findOne({ id: req.body.id }, (err, result) => {
-            if(result) {
-                return res.send('중복 ID');
-            } else {
-                db.collection('login').insertOne({ id: req.body.id, pw: req.body.pw });
-                res.redirect('/');
-            }
-        })
+    db.collection('login').findOne({ id: req.body.id }, (err, result) => {
+        if (result) {
+            return res.send('중복 ID');
+        } else {
+            db.collection('login').insertOne({ id: req.body.id, pw: req.body.pw });
+            res.redirect('/');
+        }
     })
+})
 
 
 app.put('/edit', (req, res) => {
@@ -197,7 +224,7 @@ app.delete('/delete', (req, res) => {
     var deleteData = { _id: req.body._id, writer: req.user._id }
     db.collection('post').deleteOne({ deleteData }, (err, result) => {
         // console.log('삭제완료!');
-        if(result) { console.log(result); }
+        if (result) { console.log(result); }
         res.status(200).send({ message: '성공했습니다' });
     });
 })
@@ -210,15 +237,15 @@ app.use('/board/sub', require('./routes/board'));
 let multer = require('multer');
 
 const storage = multer.diskStorage({
-    destination: function(req, file, cb) {
+    destination: function (req, file, cb) {
         cb(null, './public/image') // 경로 설정
     },
-    filename: function(req, file, cb) {
+    filename: function (req, file, cb) {
         cb(null, file.originalname) // 파일명 설정, 중복 안되게 할려면 날짜,시간 같은거 추가하면 되겠죠?
     },
     fileFilter: function (req, file, callback) {
         const ext = path.extname(file.originalname);
-        if(ext !== '.png' && ext !== '.jpg' && ext !== '.jpeg') {
+        if (ext !== '.png' && ext !== '.jpg' && ext !== '.jpeg') {
             return callback(new Error('PNG, JPG만 업로드하세요'))
         }
         callback(null, true)
@@ -226,7 +253,7 @@ const storage = multer.diskStorage({
     // limits: 파일 사이즈 제한
 });
 
-const upload = multer({storage: storage})
+const upload = multer({ storage: storage })
 
 
 app.get('/upload', (req, res) => {
@@ -267,7 +294,7 @@ app.post('/message', islogin, (req, res) => {
         data: new Date()
     }
 
-    db.collection('message').insertOne(messageData).then( () => {
+    db.collection('message').insertOne(messageData).then(() => {
         console.log('성공');
         res.send('DB저장 성공');
     }).catch(() => { // db 저장 실패했을 경우
@@ -275,16 +302,26 @@ app.post('/message', islogin, (req, res) => {
     })
 })
 
-app.get('/message', islogin, (req, res) => {
+// 실시간 소통채널
+app.get('/message/:id', islogin, (req, res) => {
     // Header를 이렇게 수정해주세요
     res.writeHead(200, {
         "Connection": "keep-alive",
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
     });
-    db.collection('message').find({  }).toArray()
+    db.collection('message').find({ parent: req.params.id }).toArray().then((result) => {
+        res.write('event: test\n'); // 유저에게 데이터 전송은 event: 보낼 데이터
+        res.write('data: ' + JSON.stringify(result) + '\n\n') // 데이터는 문자만 보낼 수 있어서 JSON으로 바꿔서 보냄
+    })
 
-    res.write('event: test\n'); // 유저에게 데이터 전송은 event: 보낼 데이터
-    res.write('data: \n\n')
-
+    const pipeline = [
+        { $match: { 'fullDocument.parent': req.params.id } } // 컬렉션 안의 원하는 document만 감시하고 싶으면
+    ];
+    const collection = db.collection('message');
+    const changeStream = collection.watch(pipeline);
+    changeStream.on('change', (result) => {
+        res.write('event: test\n');
+        res.write('data: ' + JSON.stringify([result.fullDocument]) + '\n\n')
+    })
 })

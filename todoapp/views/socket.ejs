@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/css/bootstrap.min.css">
+    <title>Document</title>
+</head>
+
+<body>
+    <%- include('nav.html') %>
+
+    <!-- EJS 문법 -->
+    <div class="container">
+        <p>채팅방</p>
+        <input type="text" id="inputMsg">
+        <div id="content"></div>
+        <button id="send">send message</button>
+        <button id="room1">1번 채팅방</button>
+        <button id="room1-send">room1 send message</button>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- 서버에 설치한 socket.io 버전과 똑같아야 함 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.2/socket.io.js" integrity="sha512-VJ6+sp2E5rFQk05caiXXzQd1wBABpjEj1r5kMiLmGAAgwPItw1YpqsCCBtq8Yr1x6C49/mTpRdXtq8O2RcZhlQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+        const socket = io();
+
+        $('#room1-send').click(function() {
+            socket.emit('room1-send', 'hi chat room1');
+        })
+
+        $('#room1').click(function() {
+            socket.emit('joinroom', 'chat room1');
+        })
+
+        $('#send').click(function() {
+            socket.emit('user-send', $('#inputMsg').val()); // 유저가 서버에게 웹소켓으로 실시간 메세지 보내는 법 emit('작명', '메세지')
+        })
+
+        socket.on('broadcast', function(data) {  // data -> 서버가 유저한테 보낸 데이터
+            $('#content').append('<div>' + data + '</div>');
+        })
+    </script>
+</body>
+
+</html>
+
+<style>
+
+</style>

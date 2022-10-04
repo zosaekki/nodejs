@@ -53,9 +53,16 @@
             $('.list-group-item').click(function() {
                 const clickChatId = this.dataset.id; // 채팅방 누르면 ID
 
-                const eventSource = new EventSource('/message'); // 실시간 데이터 받기위한 특별한 GET 요청
+                const eventSource = new EventSource('/message/' + clickChatId); // 실시간 데이터 받기위한 특별한 GET 요청
+
+                if(eventSource != undefined) {
+                    eventSource.close();
+                }
                 eventSource.addEventListener('test', function(e) { // 유저 데이터 수신
-                    console.log(e.data);
+                    const dbMsg = JSON.parse(e.data);
+                    dbMsg.forEach((i) => {
+                        $('.chat-content').append('<li><span class="chat-box">' + i.content + '</span></li>')
+                    })
                 })
 
                 $('#send').click(() => { // 전송버튼 누르면 msgData 서버로 전송
