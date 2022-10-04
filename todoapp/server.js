@@ -8,6 +8,7 @@ const methodOverride = require('method-override');
 app.use(methodOverride('_method'));
 app.set('view engine', 'ejs');
 require('dotenv').config(); // 환경변수 관리 라이브러리
+const { ObjectId } = require('mongodb');
 
 app.use('/public', express.static('public')); // 미들웨어 (요청과 응답사이에 동작하는), static 파일을 보관하기 위해 public 폴더를 쓸거다.
 
@@ -23,6 +24,51 @@ MongoClient.connect(
             console.log('listening on 8080');
         });
     })
+
+
+// 로그인 관련 라이브러리 선언
+const passport = require('passport'); // node.js 환경에서 로그인 기능 쉽게 구현 도와줌
+const LocalStrategy = require('passport-local').Strategy;
+const session = require('express-session');
+
+// app.use 미들웨어(요청 - 응답 중간에 실행되는 코드)
+app.use(session({ secret: '비밀코드', resave: true, saveUninitialized: false }));
+app.use(passport.initialize());
+app.use(passport.session());
+
+// passport.authenticate로 인해 밑에 코드 실행
+passport.use(new LocalStrategy({ // 인증하는 방법
+    usernameField: 'id', // form에 입력한 name
+    passwordField: 'pw',
+    session: true, // 로그인 후 session 저장할 것인지
+    passReqToCallback: false, // 아이디/비번 말고도 다른 정보 검증하고 싶으면 true
+}, function (입력한아이디, 입력한비번, done) {
+    //console.log(입력한아이디, 입력한비번);
+    db.collection('login').findOne({ id: 입력한아이디 }, function (에러, 결과) {
+        if (에러) return done(에러)
+        // * 중요 *
+        // done = 라이브러리 문법, 세개의 파라미터 가질 수 있음 (1. 서버에러, 2.일치할 경우 DB데이터, 3.에러메세지)
+        if (!결과) return done(null, false, { message: '존재하지않는 아이디요' }) // db에 ID 없다
+        if (입력한비번 == 결과.pw) { // db에 아이디 있으면
+            return done(null, 결과)
+        } else {
+            return done(null, false, { message: '비번틀렸어요' })
+        }
+    })
+}));
+
+// session 저장시키는 코드(로그인 성공시 발동)
+passport.serializeUser((user, done) => {
+    done(null, user.id);
+})
+
+// 이 세션 데이터를 가진 사람을 DB에서 찾음(마이페이지 접속시 발동)
+// 위에 있는 user.id랑 밑에 있는 id랑 동일
+passport.deserializeUser((id, done) => {
+    db.collection('login').findOne({ id : id}, (err, result) => {
+        done(null, result);
+    })
+})
 
 app.get('/', (req, res) => {
     res.render('index.ejs');
@@ -117,15 +163,7 @@ app.put('/edit', (req, res) => {
     })
 })
 
-// 로그인 관련 라이브러리 선언
-const passport = require('passport'); // node.js 환경에서 로그인 기능 쉽게 구현 도와줌
-const LocalStrategy = require('passport-local').Strategy;
-const session = require('express-session');
 
-// app.use 미들웨어(요청 - 응답 중간에 실행되는 코드)
-app.use(session({ secret: '비밀코드', resave: true, saveUninitialized: false }));
-app.use(passport.initialize());
-app.use(passport.session());
 
 
 app.post('/login', passport.authenticate('local', { // local 방식으로 인증
@@ -134,39 +172,7 @@ app.post('/login', passport.authenticate('local', { // local 방식으로 인증
     res.redirect('/');
 })
 
-// passport.authenticate로 인해 밑에 코드 실행
-passport.use(new LocalStrategy({ // 인증하는 방법
-    usernameField: 'id', // form에 입력한 name
-    passwordField: 'pw',
-    session: true, // 로그인 후 session 저장할 것인지
-    passReqToCallback: false, // 아이디/비번 말고도 다른 정보 검증하고 싶으면 true
-}, function (입력한아이디, 입력한비번, done) {
-    //console.log(입력한아이디, 입력한비번);
-    db.collection('login').findOne({ id: 입력한아이디 }, function (에러, 결과) {
-        if (에러) return done(에러)
-        // * 중요 *
-        // done = 라이브러리 문법, 세개의 파라미터 가질 수 있음 (1. 서버에러, 2.일치할 경우 DB데이터, 3.에러메세지)
-        if (!결과) return done(null, false, { message: '존재하지않는 아이디요' }) // db에 ID 없다
-        if (입력한비번 == 결과.pw) { // db에 아이디 있으면
-            return done(null, 결과)
-        } else {
-            return done(null, false, { message: '비번틀렸어요' })
-        }
-    })
-}));
 
-// session 저장시키는 코드(로그인 성공시 발동)
-passport.serializeUser((user, done) => {
-    done(null, user.id);
-})
-
-// 이 세션 데이터를 가진 사람을 DB에서 찾음(마이페이지 접속시 발동)
-// 위에 있는 user.id랑 밑에 있는 id랑 동일
-passport.deserializeUser((id, done) => {
-    db.collection('login').findOne({ id : id}, (err, result) => {
-        done(null, result);
-    })
-})
 
 app.post('/newpost', (req, res) => {
     // 데이터 하나만 찾기
@@ -194,4 +200,91 @@ app.delete('/delete', (req, res) => {
         if(result) { console.log(result); }
         res.status(200).send({ message: '성공했습니다' });
     });
+})
+
+app.use('/shop', require('./routes/shop'));
+
+app.use('/board/sub', require('./routes/board'));
+
+
+let multer = require('multer');
+
+const storage = multer.diskStorage({
+    destination: function(req, file, cb) {
+        cb(null, './public/image') // 경로 설정
+    },
+    filename: function(req, file, cb) {
+        cb(null, file.originalname) // 파일명 설정, 중복 안되게 할려면 날짜,시간 같은거 추가하면 되겠죠?
+    },
+    fileFilter: function (req, file, callback) {
+        const ext = path.extname(file.originalname);
+        if(ext !== '.png' && ext !== '.jpg' && ext !== '.jpeg') {
+            return callback(new Error('PNG, JPG만 업로드하세요'))
+        }
+        callback(null, true)
+    },
+    // limits: 파일 사이즈 제한
+});
+
+const upload = multer({storage: storage})
+
+
+app.get('/upload', (req, res) => {
+    res.render('upload.ejs');
+})
+
+// 파일 여러개 업로드 upload.array('form name', '파일 갯수')
+app.post('/upload', upload.single('img'), (req, res) => {
+    res.send('이미지 업로드 완료');
+})
+
+app.get('/image/:imgName', (req, res) => {
+    res.sendFile(__dirname + '/public/image/' + req.params.imgName)
+})
+
+app.get('/chat', (req, res) => {
+    db.collection('chatroom').find({ member: req.user._id }).toArray().then((result) => {
+        res.render('chat.ejs', { data: result });
+    })
+})
+
+app.post('/chatroom', islogin, (req, res) => {
+    let chatroonData = {
+        title: '채팅방',
+        member: [ObjectId(req.body.writer), req.user._id], // 채팅 당한 사람, 채팅 건 사람
+        date: new Date()
+    }
+    db.collection('chatroom').insertOne(chatroonData).then((result) => { // 콜백함수대신 then 사용가능
+        res.send('성공');
+    })
+})
+
+app.post('/message', islogin, (req, res) => {
+    let messageData = {
+        parent: req.body.parent,
+        content: req.body.content,
+        userid: req.user._id, // 현재 로그인된 유저의 _id
+        data: new Date()
+    }
+
+    db.collection('message').insertOne(messageData).then( () => {
+        console.log('성공');
+        res.send('DB저장 성공');
+    }).catch(() => { // db 저장 실패했을 경우
+
+    })
+})
+
+app.get('/message', islogin, (req, res) => {
+    // Header를 이렇게 수정해주세요
+    res.writeHead(200, {
+        "Connection": "keep-alive",
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+    });
+    db.collection('message').find({  }).toArray()
+
+    res.write('event: test\n'); // 유저에게 데이터 전송은 event: 보낼 데이터
+    res.write('data: \n\n')
+
 })

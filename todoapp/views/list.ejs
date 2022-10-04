@@ -28,10 +28,11 @@
         <% for (let i=0; i < posts.length; i++) { %>
             <li class="list-group-item">
                 <p>글번호 : <%= posts[i]._id %></p>
-                <a href="/detail/<%= posts[i]._id %>"><h4><%= posts[i].title %></h4></a>
+                <a href="/detail/<%= posts[i]._id %>"><h4 class="title"><%= posts[i].title %></h4></a>
                 <p><%= posts[i].date %></p>
                 <a href="/edit/<%= posts[i]._id %>"><button class="btn btn-primary" data-id="<%= posts[i]._id %>">수정</button></a>
                 <button class="del btn btn-danger" data-id="<%= posts[i]._id %>">삭제</button>
+                <button class="btn btn-success chat" data-id="<%= posts[i].writer %>">채팅</button>
             </li>
         <% } %>
     </ul>
@@ -61,6 +62,14 @@
             var searchInput = $('#search-input').val();
             window.location.replace('/search?value=' + searchInput);
         })
+
+        $('.chat').click((e) => {
+            const id = e.target.dataset.id;
+            $.post('/chatroom', { writer: id
+            }).then(() => {
+                console.log('성공')
+            })
+        })
     </script>
 
 
@@ -69,3 +78,10 @@
 </body>
 
 </html>
+
+<style>
+    .title {
+        display: inline-block;
+        color: black;
+    }
+</style>
